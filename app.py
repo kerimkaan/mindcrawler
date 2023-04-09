@@ -14,64 +14,33 @@ r = redis.Redis(
     password=os.getenv('REDIS_PASSWORD')
 )
 
-app = Flask(__name__)
+def appFactory():
+    app = Flask(__name__)
+    return app
 
-@app.route('/user/<username>')
-def show_user_profile(username):
-    # show the user profile for that user
-    return f'User {escape(username)}'
+factory = appFactory()
 
-
-@app.route('/post/<int:post_id>')
-def show_post(post_id):
-    # show the post with the given id, the id is an integer
-    return f'Post {post_id}'
-
-
-@app.route('/path/<path:subpath>')
-def show_subpath(subpath):
-    # show the subpath after /path/
-    return f'Subpath {escape(subpath)}'
-
-
-@app.route("/")
+@factory.route("/")
 def index():
     return "<p>Hello, World!</p>"
 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        return f'You are in POST method'
-    else:
-        return f'You are in GET method'
-
-
-@app.route("/me", methods=["GET"])
-def me_api():
-    print(r.get('foo'))
-    user = {
-        "username": "John",
-        "theme": "dark",
-        "image": "https://example.com/john.png"
-    }
-    return {
-        "user": user["username"],
-        "theme": user["theme"],
-        "image": user["image"]
-    }
-
-
-@app.route('/create', methods=['POST'])
+@factory.route('/create', methods=['POST'])
 def createLink():
-    if (not request.is_json):
+    if (not request.is_json or request.get_json() == {} or type(request.get_json()) == None):
         return {
             "message": "Missing JSON in request",
-            "success": True
+            "success": False
         }, 400
     try:
         data = request.get_json()
         url = urlparse(data['url'])
+        if (url[0] == "" or url[1] == ""): # If scheme or url is empty, return error
+            return {
+                "message": "Scheme or url is missing, you can add it to your link like https://google.com",
+                "success": False,
+                "url": data['url']
+            }, 400
         print(url)
         # We need full URL like https://google.com
         message = url[0] + '://' + url[1]
@@ -95,7 +64,7 @@ def createLink():
         r.publish('crawling-channel', message)
         return {
             "message": "Link created successfully",
-            "success": False,
+            "success": True,
             "url": data['url']
         }
     except Exception as e:
@@ -105,7 +74,7 @@ def createLink():
             "error": str(e)
         }, 500
 
-@app.route('/result', methods=['GET'])
+@factory.route('/result', methods=['GET'])
 def getResult():
     url = request.args.get('url')
     if (url == "" or url == None):
@@ -149,5 +118,5 @@ def getResult():
     }, 200
 
 if __name__ == "__main__":
-    app.run(debug=os.getenv('DEBUG'), host=os.getenv('HOST'), port=os.getenv('PORT'))
+    factory.run(debug=os.getenv('DEBUG'), host=os.getenv('HOST'), port=os.getenv('PORT'))
 
