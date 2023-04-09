@@ -22,7 +22,7 @@ factory = appFactory()
 
 @factory.route("/")
 def index():
-    return "<p>Hello, World!</p>"
+    return "<p>Hello, You can use POST /create or GET /result</p>"
 
 
 @factory.route('/create', methods=['POST'])
