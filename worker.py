@@ -51,7 +51,10 @@ def createMetadataInRedis (hashName, title = '', description = '', httpStatusCod
 def getMetadataFromUrl (url):
     response = requests.get(url)
     httpStatusCode = response.status_code
-    soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
+    try:
+        soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
+    except:
+        soup = BeautifulSoup(response.content, 'html.parser')
     title = soup.title.string
     description = soup.find('meta', {'name': 'description'})
     if description:
@@ -66,14 +69,14 @@ def worker():
         logging.info('New message from channel: ', msg['data'])
         if msg['data'] == 1:
             print('Channel is empty')
-            logging.info('Channel is empty')
             continue
         data = msg['data'].decode('utf-8')
         if data == '1':
             print('Channel is empty')
         else:
+            if (data == 'https://example.com'): # Skip example.com, for testing purpose
+                continue
             hashName = 'metadata:' + data
-            logging.info('Hash name: ', hashName)
             sleepTime = round(random.uniform(0.0, 3.5), 2)
             print('Sleeping for: ', sleepTime)
             time.sleep(sleepTime)
